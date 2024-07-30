@@ -45,7 +45,7 @@
 
           <div class="col-lg-8 mt-5 mt-lg-0">
 
-            <form class="contactform" method="Post" action="{{url('contact/post')}}"> 
+            <form class="contactform" method="Post" action="{{url('/contact')}}"> 
 
               @csrf
 

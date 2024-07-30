@@ -9,98 +9,120 @@ use App\Models\Portfolio;
 use App\Models\Contact;
 use App\Models\Services;
 use App\Models\Resume;
-use Mail;
-use App\Mail\ContactMail;
-use Illuminate\Support\Facades\Http; // Http sinfini import qilish
-use Illuminate\Support\Facades\Log;  // Log sinfini import qilish
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redirect;
 
 class HomeController extends Controller
 {
+    /**
+     * Show the home page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function home()
     {
-        $data['getrecord'] = Home::all();
-        $data['meta_title'] = 'Home';
-        $data['className'] = 'home';
-        return view('home', $data);
+        return $this->renderView('home', Home::all(), 'Home', 'home');
     }
+
+    /**
+     * Show the index page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
-        $data['meta_title'] = 'index';
-        $data['className'] = 'index';
-        return view('index', $data);
+        return $this->renderView('index', 'index', 'Index', 'index');
     }
 
+    /**
+     * Show the about page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function about()
     {
-        $data['getrecord'] = About::all();
-        $data['meta_title'] = 'about';
-        $data['className'] = 'about';
-        return view('about',$data);
+        return $this->renderView('about', About::all(), 'About', 'about');
     }
 
+    /**
+     * Show the resume page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function resume()
     {
-        $data['getrecord'] = Resume::get();
-        $data['meta_title'] = 'resume';
-        $data['className'] = 'resume';
-        return view('resume', $data);
+        return $this->renderView('resume', Resume::all(), 'Resume', 'resume');
     }
-    
+
+    /**
+     * Show the portfolio page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function portfolio()
     {
-        $data['getrecord'] = Portfolio::get();
-        $data['meta_title'] = 'portfolio';
-        $data['className'] = 'portfolio';
-        return view('portfolio', $data);
+        return $this->renderView('portfolio', Portfolio::all(), 'Portfolio', 'portfolio');
     }
 
+    /**
+     * Show the services page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function services()
     {
-        $data['getrecord'] = Services::get();
-        $data['meta_title'] = 'services';
-        $data['className'] = 'services';
-        return view('services', $data);
+        return $this->renderView('services', Services::all(), 'Services', 'services');
     }
 
+    /**
+     * Show the contact page.
+     *
+     * @return \Illuminate\View\View
+     */
     public function contact()
     {
-        $data['meta_title'] = 'contact';
-        $data['className'] = 'contact';
-
-        return view('contact', $data);
+        return view('contact', [
+            'meta_title' => 'Contact',
+            'className' => 'contact',
+        ]);
     }
 
-    public function contact_post(Request $request)
+    public function contactPost(Request $request)
     {
-        $insertRecord = new Contact;
-
-        $insertRecord->name = trim($request->name);
-        $insertRecord->email = trim($request->email);
-        $insertRecord->subject = trim($request->subject);
-        $insertRecord->message = trim($request->message);
-
-        $insertRecord->save();
-
-        // Telegramga xabar yuborish funksiyasini chaqirish
+        $this->validateContactForm($request);
+    
+        Contact::create($request->only(['name', 'email', 'subject', 'message']));
+    
         $this->sendMessageToTelegram($request);
-
-        return redirect()->back()->with('success', 'Your Message submitted successfully');
+    
+        return Redirect::back()->with('success', 'Your message was submitted successfully.');
     }
 
-    protected function sendMessageToTelegram($request)
+    protected function validateContactForm(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
+        ]);
+    }
+
+    protected function sendMessageToTelegram(Request $request)
     {
         $botToken = config('services.telegram.bot_token');
         $chatId = config('services.telegram.chat_id');
 
-        $message = "New Contact Message:\n";
-        $message .= "Name: " . $request->name . "\n";
-        $message .= "Email: " . $request->email . "\n";
-        $message .= "Subject: " . $request->subject . "\n";
-        $message .= "Message: " . $request->message;
+        $message = sprintf(
+            "New Contact Message:\nName: %s\nEmail: %s\nSubject: %s\nMessage: %s",
+            $request->name,
+            $request->email,
+            $request->subject,
+            $request->message
+        );
 
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-
-        $response = Http::post($url, [
+        $response = Http::post("https://api.telegram.org/bot{$botToken}/sendMessage", [
             'chat_id' => $chatId,
             'text' => $message,
         ]);
@@ -113,5 +135,13 @@ class HomeController extends Controller
             ]);
         }
     }
+   
+    protected function renderView(string $view, $data, string $metaTitle, string $className)
+    {
+        return view($view, [
+            'getrecord' => $data,
+            'meta_title' => $metaTitle,
+            'className' => $className,
+        ]);
+    }
 }
-

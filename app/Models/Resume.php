@@ -10,12 +10,13 @@ class Resume extends Model
     use HasFactory;
     protected $fillable = [
         'title',
+        'services_title',
         'sub_title',
-        'description',
         'year',
         'about_me',
         'address',
         'phone',
         'email',
+        'description',
     ];
 }
